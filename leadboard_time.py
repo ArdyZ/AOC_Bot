@@ -2,10 +2,10 @@ import os
 import time
 import json
 import urllib.request
-from dotenv import Dotenv
 from time import gmtime, strftime
 
 from discord.ext import commands
+import discord
 
 # Load the variables
 dotenv = Dotenv('.env')
@@ -128,7 +128,7 @@ async def keen(context):
 
 
 # Create the bot and specify to only look for messages starting with '!'
-bot = commands.Bot(command_prefix='!')
+bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 
 
 @bot.event
@@ -145,20 +145,22 @@ async def daily_leader_board(context, num_players: int = 20):
         return
 
     print("Starting the loop")
+    await context.send("Starting the daily update leaderboard.")
 
     while True:
         if strftime("%Y-%m-%d %H:%M:%S", gmtime()) in dates:
-            leader_board(context, num_players)
-            keen(context)
+            await leader_board(context, num_players)
+            await keen(context)
 
 
 # Set all dates such that is sends the leader board every day at 20.00 Amsterdam time zone
 dates = []
+dates.append('2022-11-30 19:00:00')
 for j in range(1, 26, 1):
     if j < 10:
-        dates.append('2021-12-0' + str(j) + ' 19:00:00')
+        dates.append('2022-12-0' + str(j) + ' 19:00:00')
     else:
-        dates.append('2021-12-' + str(j) + ' 19:00:00')
+        dates.append('2022-12-' + str(j) + ' 19:00:00')
 
 print(dates)
 bot.run(TOKEN)
