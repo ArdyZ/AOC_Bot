@@ -1,4 +1,6 @@
+import datetime
 import os
+import sched
 import time
 import json
 import urllib.request
@@ -51,7 +53,7 @@ def get_players():
         # Players that are anonymous have no name in the JSON, so give them a default name "Anon"
         for i, player in enumerate(players):
             if not player[0]:
-                anon_name = "anon #" + player[5]
+                anon_name = "anon #" + str(player[5])
                 players[i] = (anon_name, player[1], player[2], player[3], player[4], player[5])
 
         # Sort the table primarily by score, secondly by stars and finally by timestamp
@@ -135,32 +137,20 @@ bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord and is in the following channels:')
     for guild in bot.guilds:
-        print('  ', guild.name)
+        print('  ', guild.name)    
 
 
 @bot.command(name='daily_leader_board')
 async def daily_leader_board(context, num_players: int = 20):
-    # Only respond if used in a channel called 'advent-of-code'
-    if context.channel.name != 'advent-of-code':
-        return
-
-    print("Starting the loop")
-    await context.send("Starting the daily update leaderboard.")
-
+    print("I feel sleepy: ", str((datetime.datetime(2022,12,3,20,00,00)  - datetime.datetime.now()).total_seconds()))
+    time.sleep((datetime.datetime(2022,12,3,20,00,00) - datetime.datetime.now()).total_seconds())
+    day = 4
     while True:
-        if strftime("%Y-%m-%d %H:%M:%S", gmtime()) in dates:
-            await leader_board(context, num_players)
-            await keen(context)
+        await leader_board(context, num_players)
+        await keen(context)
 
+        print("I feel sleepy: ", str((datetime.datetime(2022,12,day,20,00,00)  - datetime.datetime.now()).total_seconds()))
+        time.sleep((datetime.datetime(2022,12,day,20,00,00) - datetime.datetime.now()).total_seconds())
+        day += 1
 
-# Set all dates such that is sends the leader board every day at 20.00 Amsterdam time zone
-dates = []
-dates.append('2022-11-30 19:00:00')
-for j in range(1, 26, 1):
-    if j < 10:
-        dates.append('2022-12-0' + str(j) + ' 19:00:00')
-    else:
-        dates.append('2022-12-' + str(j) + ' 19:00:00')
-
-print(dates)
 bot.run(TOKEN)
