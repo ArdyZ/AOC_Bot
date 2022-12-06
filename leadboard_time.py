@@ -4,9 +4,12 @@ import sched
 import time
 import json
 import urllib.request
+import schedule
 from time import gmtime, strftime
+from datetime import datetime, timedelta
+import asyncio
 
-from discord.ext import commands
+from discord.ext import commands, tasks
 import discord
 
 # Load the variables
@@ -25,6 +28,10 @@ PLAYER_STR_FORMAT = '{rank:2}) {name:{name_pad}} ({points:{points_pad}}) {stars:
 
 # A cache to make sure we do not need to poll the Advent of Code API within 15 min
 players_cache = ()
+
+# CH channel name for AOC
+CHANNEL_ID = 912708047141486592
+NUM_PLAYERS = 20
 
 
 def get_players():
@@ -66,25 +73,26 @@ def get_players():
     return players_cache[1]
 
 
-async def output_leader_board(context, leader_board_lst):
+async def output_leader_board(leader_board_lst):
     item_len = len(leader_board_lst[0])
     block_size = MAX_MESSAGE_LEN // item_len
 
     tmp_leader_board = leader_board_lst
+    message_channel = bot.get_channel(CHANNEL_ID)
 
     while (len(tmp_leader_board) * item_len) > MAX_MESSAGE_LEN:
         output_str = '```'
         output_str += ''.join(tmp_leader_board[:block_size])
         output_str += '```'
-        await context.send(output_str)
+        await message_channel.send(output_str)
         tmp_leader_board = tmp_leader_board[block_size:]
     output_str = '```'
     output_str += ''.join(tmp_leader_board)
     output_str += '```'
-    await context.send(output_str)
+    await message_channel.send(output_str)
 
 
-async def leader_board(context, num_players: int = 20):
+async def leader_board(num_players: int = 20):
     print('Leader board requested')
     players = get_players()[:num_players]
 
@@ -101,13 +109,10 @@ async def leader_board(context, num_players: int = 20):
                                                      stars=player[2], stars_pad=max_stars_len,
                                                      star_time=time.strftime('%H:%M %d/%m', time.localtime(player[3]))))
 
-    await output_leader_board(context, leader_board)
+    await output_leader_board(leader_board)
 
 
-async def keen(context):
-    # Only respond if used in a channel called 'advent-of-code'
-    if context.channel.name != 'advent-of-code':
-        return
+async def keen():
     print('Keenest bean requested')
 
     all_players = get_players()
@@ -126,7 +131,8 @@ async def keen(context):
                                        stars=player[2], stars_pad=len(str(player[2])),
                                        star_time=time.strftime('%H:%M %d/%m', time.localtime(player[3])))
     result += '```'
-    await context.send(result)
+    message_channel = bot.get_channel(CHANNEL_ID)
+    await message_channel.send(result)
 
 
 # Create the bot and specify to only look for messages starting with '!'
@@ -137,20 +143,30 @@ bot = commands.Bot(command_prefix='!', intents=discord.Intents.all())
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord and is in the following channels:')
     for guild in bot.guilds:
-        print('  ', guild.name)    
+        print('  ', guild.name)
 
 
-@bot.command(name='daily_leader_board')
-async def daily_leader_board(context, num_players: int = 20):
-    print("I feel sleepy: ", str((datetime.datetime(2022,12,3,20,00,00)  - datetime.datetime.now()).total_seconds()))
-    time.sleep((datetime.datetime(2022,12,3,20,00,00) - datetime.datetime.now()).total_seconds())
-    day = 4
-    while True:
-        await leader_board(context, num_players)
-        await keen(context)
+def seconds_until_9():
+    now = datetime.now()
+    target = (now + timedelta(days=1)).replace(hour=9, minute=0, second=0, microsecond=0)
+    diff = (target - now).total_seconds()
+    print(f"{target} - {now} = {diff}")
+    return diff
 
-        print("I feel sleepy: ", str((datetime.datetime(2022,12,day,20,00,00)  - datetime.datetime.now()).total_seconds()))
-        time.sleep((datetime.datetime(2022,12,day,20,00,00) - datetime.datetime.now()).total_seconds())
-        day += 1
+
+@tasks.loop(seconds=60)
+async def daily_leaderboard():
+    await asyncio.sleep(seconds_until_9())
+    message_channel = bot.get_channel(CHANNEL_ID)
+    print(f"Got channel {message_channel}")
+    await leader_board(NUM_PLAYERS)
+    await keen()
+
+
+@daily_leaderboard.before_loop
+async def before():
+    await bot.wait_until_ready()
+    print("Finished waiting")
+
 
 bot.run(TOKEN)
