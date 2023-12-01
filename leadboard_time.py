@@ -17,6 +17,7 @@ COOKIE = dotenv['AOC_COOKIE']
 
 # Advent Of Code request that you don't poll their API more often than once every 15 minutes
 POLL_MINS = 15
+YEAR = 2023
 
 # Discord messages are limited to 2000 characters. This also includes space for 6 '`' characters for a code block
 MAX_MESSAGE_LEN = 2000 - 6
@@ -142,15 +143,13 @@ async def on_ready():
 
 @bot.command(name='daily_leader_board')
 async def daily_leader_board(context, num_players: int = 20):
-    print("I feel sleepy: ", str((datetime.datetime(2022,12,3,20,00,00)  - datetime.datetime.now()).total_seconds()))
-    time.sleep((datetime.datetime(2022,12,3,20,00,00) - datetime.datetime.now()).total_seconds())
-    day = 4
+    day = 2
     while True:
         await leader_board(context, num_players)
         await keen(context)
 
-        print("I feel sleepy: ", str((datetime.datetime(2022,12,day,20,00,00)  - datetime.datetime.now()).total_seconds()))
-        time.sleep((datetime.datetime(2022,12,day,20,00,00) - datetime.datetime.now()).total_seconds())
+        print("I feel sleepy: ", str((datetime.datetime(YEAR,12,day,20,00,00)  - datetime.datetime.now()).total_seconds()))
+        time.sleep((datetime.datetime(YEAR,12,day,20,00,00) - datetime.datetime.now()).total_seconds())
         day += 1
 
 bot.run(TOKEN)
